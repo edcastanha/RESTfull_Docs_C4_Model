@@ -6,6 +6,7 @@ from core.domain.cliente import (
 )
 from core.repository.cliente_repository import ClienteRepository
 from core.security.security import get_password_hash
+from pydantic import SecretStr
 
 class ClienteService:
     """
@@ -38,7 +39,7 @@ class ClienteService:
         # Hash da senha antes de salvar
         hashed_password = get_password_hash(cliente_data.senha.get_secret_value())
         cliente_com_senha_hash = cliente_data.model_copy(
-            update={"senha": hashed_password}
+            update={"senha": SecretStr(hashed_password)}
         )
 
         return self.repository.create(cliente_com_senha_hash)

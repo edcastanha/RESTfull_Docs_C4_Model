@@ -1,0 +1,66 @@
+@startuml
+title Diagrama de Classes - Camada de Serviço
+
+package "Domain" {
+    class Cliente
+    class ClienteCreate
+    class ClienteUpdate
+    class ClienteNaoEncontradoError
+    class Favorito
+    class FavoritoCreate
+    class FavoritoResponse
+    class ProdutoExterno
+}
+
+package "Repository" {
+    class ClienteRepository
+    class FavoritoRepository
+}
+
+package "Externos" {
+    class FakeStoreProduct
+}
+
+package "Config" {
+    class RedisConfig
+}
+
+package "Security" {
+    class get_password_hash
+}
+
+package "Service" {
+    class ClienteService {
+        -repository: ClienteRepository
+        +criar_cliente(cliente_data: ClienteCreate): Cliente
+        +listar_clientes(): list[Cliente]
+        +buscar_cliente(cliente_id: int): Cliente
+        +atualizar_cliente(cliente_id: int, cliente_update: ClienteUpdate): Cliente
+        +deletar_cliente(cliente_id: int): bool
+    }
+    ClienteService --> ClienteRepository
+    ClienteService ..> get_password_hash
+    ClienteService ..> Cliente
+    ClienteService ..> ClienteCreate
+    ClienteService ..> ClienteUpdate
+    ClienteService ..> ClienteNaoEncontradoError
+
+    class FavoritoService {
+        -repository: FavoritoRepository
+        -fake_store_product: FakeStoreProduct
+        -redis: Redis
+        -redis_expires: int
+        +adicionar_favoritos(cliente_id: int, produto_ids: list[int]): list[FavoritoResponse]
+        +listar_favoritos(cliente_id: int): list[FavoritoResponse]
+        +remover_favorito(cliente_id: int, produto_id: int): bool
+    }
+    FavoritoService --> FavoritoRepository
+    FavoritoService --> FakeStoreProduct
+    FavoritoService ..> RedisConfig
+    FavoritoService ..> Favorito
+    FavoritoService ..> FavoritoCreate
+    FavoritoService ..> FavoritoResponse
+    FavoritoService ..> ProdutoExterno
+}
+
+@enduml

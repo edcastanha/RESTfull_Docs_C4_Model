@@ -22,7 +22,7 @@ services:
       - ./infra/.env.container
     restart: always
     deploy:
-      replicas: 2 # Defina o número de instâncias, Design System - LOAD BALANCER
+      replicas: 1 # Defina o número de instâncias, Design System - LOAD BALANCER
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s

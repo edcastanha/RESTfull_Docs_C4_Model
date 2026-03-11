@@ -1,0 +1,135 @@
+@startuml
+title Diagrama de Classes Completo - Core
+
+' Camada de Configuração e Segurança
+package "Config" {
+    class Settings {
+        +db_host: str
+        +db_port: str
+        +db_user: str
+        +db_pass: str
+        +db_name: str
+        +secret_key: str
+        +algorithm: str
+        +access_token_expire_minutes: int
+        +database_url: str
+    }
+
+    class "get_settings()" as get_settings_func
+    get_settings_func ..> Settings
+
+    class db {
+        +engine
+        +SessionLocal
+        +Base
+    }
+    db ..> get_settings_func
+
+    class RedisConfig {
+        +host: str
+        +port: int
+        +db: int
+        +expires: int
+        +get_client(): Redis
+        +get_expires(): int
+    }
+}
+
+package "Security" {
+    hide empty members
+    class "pwd_context"
+    class "verify_password()"
+    class "get_password_hash()"
+    class "create_access_token()"
+    class "oauth2_scheme"
+    class "get_db()"
+    class "get_current_user()"
+}
+
+' Camada de Domínio
+package "Domain" {
+    enum TipoCliente {
+        USER
+        ADMIN
+    }
+    class ClienteBase
+    class ClienteCreate
+    ClienteCreate --|> ClienteBase
+    class Cliente
+    Cliente --|> ClienteBase
+    class ClienteInDB
+    ClienteInDB --|> Cliente
+    class ClienteUpdate
+    class ClienteNaoEncontradoError <<(E,red)>>
+
+    class FavoritoBase
+    class Favorito
+    Favorito --|> FavoritoBase
+    class FavoritoCreate
+    FavoritoCreate --|> FavoritoBase
+    class ProdutoExterno
+    class FavoritoResponse
+    class FavoritoCreateRequest
+}
+
+' Camada de Repositório
+package "Repository" {
+    class ClienteORM
+    ClienteORM --|> db.Base
+    class FavoritoORM
+    FavoritoORM --|> db.Base
+
+    class ClienteRepository {
+        -db: Session
+    }
+    ClienteRepository ..> ClienteORM
+    ClienteRepository ..> db.SessionLocal
+    ClienteRepository ..> Cliente
+    ClienteRepository ..> ClienteCreate
+    ClienteRepository ..> ClienteInDB
+    ClienteRepository ..> ClienteUpdate
+
+    class FavoritoRepository {
+        -db: Session
+    }
+    FavoritoRepository ..> FavoritoORM
+    FavoritoRepository ..> db.SessionLocal
+    FavoritoRepository ..> Favorito
+    FavoritoRepository ..> FavoritoCreate
+}
+
+' Camada de Serviço
+package "Service" {
+    class ClienteService {
+        -repository: ClienteRepository
+    }
+    ClienteService --> ClienteRepository
+    ClienteService ..> "Security.get_password_hash()"
+    ClienteService ..> Cliente
+    ClienteService ..> ClienteCreate
+    ClienteService ..> ClienteUpdate
+    ClienteService ..> ClienteNaoEncontradoError
+
+    class FavoritoService {
+        -repository: FavoritoRepository
+        -fake_store_product: FakeStoreProduct
+        -redis: Redis
+    }
+    FavoritoService --> FavoritoRepository
+    FavoritoService ..> RedisConfig
+    FavoritoService ..> Favorito
+    FavoritoService ..> FavoritoCreate
+    FavoritoService ..> FavoritoResponse
+    FavoritoService ..> ProdutoExterno
+    FavoritoService ..> "externos.FakeStoreProduct"
+}
+
+' Dependências da Camada de Segurança
+"Security.create_access_token()" ..> Settings
+"Security.get_db()" ..> db.SessionLocal
+"Security.get_current_user()" ..> "Security.oauth2_scheme"
+"Security.get_current_user()" ..> "Security.get_db()"
+"Security.get_current_user()" ..> Settings
+"Security.get_current_user()" ..> ClienteRepository
+
+@enduml

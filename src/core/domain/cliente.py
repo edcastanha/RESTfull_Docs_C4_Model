@@ -27,8 +27,7 @@ class Cliente(ClienteBase):
             "exemplo": {
                 "id": 0,
                 "nome": "Edson Bezerra",
-                "email": "edson@aiqfome.com",
-                "tipo": 0,
+                "email": "exemplo@teste.com",
             }
         },
     )

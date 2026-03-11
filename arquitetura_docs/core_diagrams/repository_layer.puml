@@ -1,0 +1,64 @@
+@startuml
+title Diagrama de Classes - Camada de Repositório
+
+package "Domain" {
+    class Cliente
+    class ClienteCreate
+    class ClienteInDB
+    class ClienteUpdate
+    class Favorito
+    class FavoritoCreate
+}
+
+package "Config" {
+    class SessionLocal
+    class Base
+}
+
+package "Repository" {
+    class ClienteORM {
+        +id: Integer
+        +nome: String
+        +email: String
+        +senha: String
+        +tipo: Integer
+    }
+    ClienteORM --|> Base
+
+    class FavoritoORM {
+        +id: Integer
+        +cliente_id: Integer
+        +produto_id: Integer
+    }
+    FavoritoORM --|> Base
+
+    class ClienteRepository {
+        -db: Session
+        +create(cliente: ClienteCreate): Cliente
+        +get_by_id(cliente_id: int): Optional[Cliente]
+        +get_by_email(email: str): Optional[ClienteInDB]
+        +list(): List[Cliente]
+        +update(cliente_id: int, cliente_update: ClienteUpdate): Cliente | None
+        +delete(cliente_id: int): bool
+    }
+    ClienteRepository ..> ClienteORM : usa
+    ClienteRepository ..> SessionLocal : usa
+    ClienteRepository ..> Cliente
+    ClienteRepository ..> ClienteCreate
+    ClienteRepository ..> ClienteInDB
+    ClienteRepository ..> ClienteUpdate
+
+    class FavoritoRepository {
+        -db: Session
+        +create_many(favoritos: List[FavoritoCreate]): List[Favorito]
+        +list_by_cliente(cliente_id: int): List[Favorito]
+        +delete(cliente_id: int, produto_id: int): bool
+        +exists(cliente_id: int, produto_id: int): bool
+    }
+    FavoritoRepository ..> FavoritoORM : usa
+    FavoritoRepository ..> SessionLocal : usa
+    FavoritoRepository ..> Favorito
+    FavoritoRepository ..> FavoritoCreate
+}
+
+@enduml

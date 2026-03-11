@@ -25,7 +25,7 @@ Autenticação é realizada através de tokens JWT, garantindo que apenas usuár
 
 ======================
 
-## 🔧 [DESCRITO na DESAFIO](DESAFIO.md)
+## [Do Desafio Proposto](DESAFIO.md)
 
 **Clientes**
 Criar, visualizar, editar e remover clientes(ADMIN).
@@ -41,7 +41,7 @@ Produtos favoritos devem exibir: ID, título, imagem, preço e review (se houver
 **API Externa**
 Utilizado os endpoints de produtos da API => https://fakestoreapi.com/
 
-### 💡 Requisitos Técnicos Escolhidos
+### Requisitos Técnicos Escolhidos
 Você pode escolher uma das seguintes linguagens:
 - Docker
 - Docker Compose
@@ -50,7 +50,7 @@ Você pode escolher uma das seguintes linguagens:
 - PostgreSQL
 - Redis 
 
-### 🛠️ [Guia de Execução do Ambiente Local (Desenvolvimento)](INSTALL.md)
+###  [Guia de Execução no Ambiente Local (Desenvolvimento)](INSTALL.md)
 
 ```bash
 git clone https://github.com/edcastanha/BE_AqiFome_RESTfull.git
@@ -75,12 +75,14 @@ Resultando na criação de um cliente padrão e popular o banco de dados:
 
 Obs.: Em seguida você pode acessar a API e realizar as operações de CRUD para clientes e favoritos, iniciando com autenticação com os dados [.env.container](./infra/.env.container).
 
+** Confira os logs dos Containers para confirmacao de inicializacao **
+
 ![Autenticação](./arquitetura_docs/img/auth_admin_seed.png)
 
 
-## 📚 Documentação da API
+## Documentação da API
 
-### 📦 Estrutura do Projeto
+** Estrutura do Projeto **
 
 ```
 BE_AqiFome_RESTfull/
@@ -125,6 +127,38 @@ Essa organização facilita a colaboração, a escalabilidade e a manutenção d
 - Ao listar favoritos:
   1. Busca todos os favoritos do cliente (apenas IDs).
   2. Para cada produto_id, busca os dados no Redis. Se não houver, pode buscar na API externa e atualizar o cache.
+
+**OBSERVACAO de MODELO PRODUTO**
+
+O modelo ProdutoExterno é utilizado para representar os produtos que são consumidos da API externa. Ele contém informações detalhadas sobre o produto, como título, preço, descrição, categoria e imagem. Esses dados são armazenados em cache no Redis para melhorar a performance das consultas.
+
+**A API fake não possui autenticação e o modelo product possue tipagem e que podem acarretar em problemas de validação, como images com URLS inválidas, por exemplo.
+E para price efetuei o tratamento garantir um modelo de moeda valido, uma vez que float pode gerar problemas de precisão modelo da api externa.**
+
+Na documentacao da api temos o modelo:
+- id:	        integer
+- title:       string
+- price:      number <float>
+- description: string
+- category:   string
+- image:	    string <uri>
+
+No entanto, o objeto entregue tem um campo `rating` que é um objeto com `rate` e `count`, o que não está documentado.
+
+```json
+{
+  "id": 1,
+  "title": "Fjallraven - Foldsack No. 1 Backpack, Fits 15 Laptops",
+  "price": 109.95,
+  "description": "Your perfect pack for everyday use and walks in the forest. Stash your laptop (up to 15 inches) in the padded sleeve, your everyday",
+  "category": "men's clothing",
+  "image": "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg",
+  "rating": {
+    "rate": 3.9,
+    "count": 120
+  }
+}
+```
 
 ## 🧩 Design System e Arquitetura do Projeto
 

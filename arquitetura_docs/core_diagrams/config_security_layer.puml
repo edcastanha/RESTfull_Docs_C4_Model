@@ -1,0 +1,61 @@
+@startuml
+title Diagrama de Classes - Camadas de Configuração e Segurança
+
+package "Config" {
+    class Settings {
+        +db_host: str
+        +db_port: str
+        +db_user: str
+        +db_pass: str
+        +db_name: str
+        +secret_key: str
+        +algorithm: str
+        +access_token_expire_minutes: int
+        +database_url: str
+    }
+
+    class "get_settings()" as get_settings_func
+    get_settings_func ..> Settings
+
+    class db {
+        +engine
+        +SessionLocal
+        +Base
+    }
+    db ..> get_settings_func
+
+    class RedisConfig {
+        +host: str
+        +port: int
+        +db: int
+        +expires: int
+        +get_client(): Redis
+        +get_expires(): int
+    }
+}
+
+package "Security" {
+    class "pwd_context" as PwdContext
+
+    class "verify_password()" as verify_password_func
+    verify_password_func ..> PwdContext
+
+    class "get_password_hash()" as get_password_hash_func
+    get_password_hash_func ..> PwdContext
+
+    class "create_access_token()" as create_access_token_func
+    create_access_token_func ..> Settings
+
+    class "oauth2_scheme" as OAuth2
+
+    class "get_db()" as get_db_func
+    get_db_func ..> db.SessionLocal
+
+    class "get_current_user()" as get_current_user_func
+    get_current_user_func ..> OAuth2
+    get_current_user_func ..> get_db_func
+    get_current_user_func ..> Settings
+    get_current_user_func ..> "Repository.ClienteRepository" : usa
+}
+
+@enduml

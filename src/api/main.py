@@ -1,14 +1,16 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from fastapi.openapi.models import Response as OpenAPIResponse
+from fastapi import status as http_status
 import logging
 from typing import Optional
 
 from core.config.db import SessionLocal, Base, engine
 from core.domain.cliente import Cliente, ClienteCreate, ClienteUpdate
 from core.domain.favorito import (
-    FavoritoCreate, FavoritoResponse, FavoritoCreateRequest
+    FavoritoCreate, FavoritoResponse, FavoritoBatchCreate
 )
 from core.repository.cliente_repository import ClienteRepository
 from core.repository.favorito_repository import FavoritoRepository
@@ -91,11 +93,29 @@ def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 # --- Clientes ---
-@app.post("/clientes", response_model=Cliente)
-def criar_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
+@app.post(
+    "/clientes",
+    response_model=Cliente,
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar um novo cliente",
+    responses={
+        201: {"description": "Cliente criado com sucesso", "model": Cliente},
+        400: {"description": "Erro de validação"},
+        500: {"description": "Erro interno"},
+    },
+)
+def criar_cliente(
+    cliente: ClienteCreate = Body(..., example={
+        "nome": "Edson Bezerra",
+        "email": "exemplo@teste.com",
+        "senha": "senha123",
+        "tipo": 1
+    }),
+    db: Session = Depends(get_db)
+):
     """
     Cria um novo cliente.
-    O cliente deve fornecer ao menos e-mail e senha.
+    O cliente deve fornecer ao menos nome, e-mail, senha e tipo.
     A senha será armazenada com hash.
     """
     service = ClienteService(ClienteRepository(db))
@@ -175,14 +195,24 @@ def deletar_cliente(
     response_model=list[FavoritoResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Adicionar um produto aos favoritos de um cliente",
+    responses={
+        201: {"description": "Favoritos adicionados com sucesso", "model": FavoritoResponse},
+        400: {"description": "Erro de validação"},
+        403: {"description": "Operação não permitida"},
+        500: {"description": "Erro interno"},
+    },
     tags=["Favoritos"],
 )
 async def adicionar_favoritos(
     cliente_id: int,
-    request_data: FavoritoCreateRequest,
+    request_data: FavoritoBatchCreate = Body(..., example={"produto_ids": [1, 2, 3]}),
     service: FavoritoService = Depends(get_favorito_service),
     current_user: Cliente = Depends(get_current_user),
 ):
+    """
+    Adiciona um ou mais produtos aos favoritos do cliente.
+    Valida os produtos via API externa e salva no cache Redis.
+    """
     if cliente_id != current_user.id:
         return error_response(403, "Operação não permitida")
     try:
@@ -198,24 +228,51 @@ async def adicionar_favoritos(
         return error_response(500, f"Ocorreu um erro interno: {e}")
 
 
-@app.get("/clientes/{cliente_id}/favoritos", response_model=list[FavoritoResponse])
+@app.get(
+    "/clientes/{cliente_id}/favoritos",
+    response_model=list[FavoritoResponse],
+    summary="Listar favoritos de um cliente",
+    responses={
+        200: {"description": "Lista de favoritos do cliente", "model": FavoritoResponse},
+        403: {"description": "Operação não permitida"},
+        500: {"description": "Erro interno"},
+    },
+    tags=["Favoritos"],
+)
 def listar_favoritos(
     cliente_id: int,
     service: FavoritoService = Depends(get_favorito_service),
     current_user: Cliente = Depends(get_current_user),
 ):
+    """
+    Lista todos os produtos favoritos de um cliente autenticado.
+    """
     if cliente_id != current_user.id:
         return error_response(403, "Operação não permitida")
     return service.listar_favoritos(cliente_id)
 
 
-@app.delete("/clientes/{cliente_id}/favoritos/{produto_id}")
+@app.delete(
+    "/clientes/{cliente_id}/favoritos/{produto_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Remover um produto dos favoritos de um cliente",
+    responses={
+        200: {"description": "Favorito removido com sucesso", "content": {"application/json": {"example": {"ok": True}}}},
+        403: {"description": "Operação não permitida"},
+        404: {"description": "Favorito não encontrado"},
+        500: {"description": "Erro interno"},
+    },
+    tags=["Favoritos"],
+)
 def remover_favorito(
     cliente_id: int,
     produto_id: int,
     service: FavoritoService = Depends(get_favorito_service),
     current_user: Cliente = Depends(get_current_user),
 ):
+    """
+    Remove um produto dos favoritos do cliente autenticado.
+    """
     if cliente_id != current_user.id:
         return error_response(403, "Operação não permitida")
     if not service.remover_favorito(cliente_id, produto_id):

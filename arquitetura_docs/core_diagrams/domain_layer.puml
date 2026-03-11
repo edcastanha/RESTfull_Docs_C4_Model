@@ -1,0 +1,70 @@
+@startuml
+title Diagrama de Classes - Camada de Domínio
+
+package "Domain" {
+    enum TipoCliente {
+        USER
+        ADMIN
+    }
+
+    class ClienteBase {
+        +tipo: TipoCliente
+    }
+
+    class ClienteCreate {
+        +nome: str
+        +email: EmailStr
+        +senha: SecretStr
+    }
+    ClienteCreate --|> ClienteBase
+
+    class Cliente {
+        +id: int
+        +nome: str
+        +email: EmailStr
+    }
+    Cliente --|> ClienteBase
+
+    class ClienteInDB {
+        +senha: SecretStr
+    }
+    ClienteInDB --|> Cliente
+
+    class ClienteUpdate {
+        +nome: Optional[str]
+        +senha: Optional[SecretStr]
+    }
+
+    class FavoritoBase {
+        +cliente_id: int
+        +produto_id: int
+    }
+
+    class Favorito {
+        +id: int
+    }
+    Favorito --|> FavoritoBase
+
+    class FavoritoCreate {
+    }
+    FavoritoCreate --|> FavoritoBase
+
+    class ProdutoExterno {
+        +id: int
+        +titulo: str
+        +imagem: str
+        +preco: float
+    }
+
+    class FavoritoResponse {
+        +id: int
+        +cliente_id: int
+        +produto: ProdutoExterno | dict
+    }
+
+    class FavoritoCreateRequest {
+        +produto_ids: list[int]
+    }
+}
+
+@enduml
